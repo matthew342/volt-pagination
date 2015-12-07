@@ -83,37 +83,28 @@ module Pagination
       current_page == 1
     end
 
-    def next_page_url
-      total_pages.then do |total_pages|
-        new_page = current_page + 1
-        if new_page > total_pages
-          next ''
-        end
-
-        url_for_page(new_page)
+    def goto_next_page
+      Promise.when(current_page, total_pages).then do |current_page, total_pages|
+        page = [(current_page + 1), total_pages].min
+        set_page(page)
       end
     end
 
-    def previous_page_url
-      new_page = current_page - 1
-      if new_page < 1
-        return ''
+    def goto_previous_page
+      current_page.then do |current_page|
+        page = [(current_page - 1), 1].max
+        set_page(page)
       end
-
-      return url_for_page(new_page)
     end
 
     def page_param_name
       attrs.page_param_name || :page
     end
 
-    def url_for_page(page_number)
-      url_with({page_param_name => page_number})
-    end
-
     def set_page(page_number)
-      page_number = page_number.to_i
-      params.send(:"_#{page_param_name}=", page_number)
+      page_number.then do
+        params.send(:"_#{page_param_name}=", page_number.to_i)
+      end
     end
   end
 end
